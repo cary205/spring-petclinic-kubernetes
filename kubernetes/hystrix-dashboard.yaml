@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hystrix-dashboard-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hystrix-dashboard
+  template:
+    metadata:
+      labels:
+        app: hystrix-dashboard
+    spec:
+      containers:
+      - name: hystrix-dashboard-ctn
+        image: springcommunity/spring-petclinic-hystrix-dashboard:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 7979
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 7979
+          initialDelaySeconds: 3
+          periodSeconds: 3
+      initContainers:
+        - name: init-config-server-ctn
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c', 'until wget http://config-server:8888/actuator; do echo waiting for config-server; sleep 2; done;']
+        - name: init-discovery-server-ctn
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c', 'until wget http://discovery-server:8761/actuator/health; do echo waiting for discovery-server; sleep 2; done;']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hystrix-dashboard
+spec:
+  type: NodePort
+  ports:
+  - port: 7979
+    nodePort: 30979
+    protocol: TCP
+    targetPort: 7979
+  selector:
+    app: hystrix-dashboard

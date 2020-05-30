@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: visits-service-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: visits-service
+  template:
+    metadata:
+      labels:
+        app: visits-service
+    spec:
+      containers:
+      - name: visits-service-ctn
+        image: springcommunity/spring-petclinic-visits-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8082
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8082
+          initialDelaySeconds: 3
+          periodSeconds: 3
+      initContainers:
+        - name: init-config-server-ctn
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c', 'until wget http://config-server:8888/actuator; do echo waiting for config-server; sleep 2; done;']
+        - name: init-discovery-server-ctn
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c', 'until wget http://discovery-server:8761/actuator/health; do echo waiting for discovery-server; sleep 2; done;']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: visits-service
+spec:
+  type: NodePort
+  ports:
+  - port: 8082
+    nodePort: 31082
+    protocol: TCP
+    targetPort: 8082
+  selector:
+    app: visits-service

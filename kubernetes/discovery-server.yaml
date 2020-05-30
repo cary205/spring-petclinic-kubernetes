@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-server-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discovery-server
+  template:
+    metadata:
+      labels:
+        app: discovery-server
+    spec:
+      containers:
+      - name: discovery-server-ctn
+        image: springcommunity/spring-petclinic-discovery-server:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8761
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8761
+          initialDelaySeconds: 3
+          periodSeconds: 3
+      initContainers:
+        - name: init-config-server-ctn
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c', 'until wget http://config-server:8888/actuator; do echo waiting for config-server; sleep 2; done;']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: discovery-server
+spec:
+  type: NodePort
+  ports:
+  - port: 8761
+    nodePort: 31761
+    protocol: TCP
+    targetPort: 8761
+  selector:
+    app: discovery-server

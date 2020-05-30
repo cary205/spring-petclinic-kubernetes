@@ -11,5 +11,5 @@ kind-test-cluster: DOCKER_RUN_ARGS+=--network=host
 kind-test-cluster:
 	@if [ -z $$(kind get clusters | grep $(KIND_PROFILE)) ]; then\
 		echo "Could not find $(KIND_PROFILE) cluster. Creating...";\
-		kind create cluster --name $(KIND_PROFILE) --image kindest/node:v1.12.9 --wait 5m;\
+		kind create cluster --name $(KIND_PROFILE) --image kindest/node:v1.12.9 --wait 5m --config ./includes/kind-config.yaml;\
 	fi
